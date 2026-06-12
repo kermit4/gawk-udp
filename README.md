@@ -1,4 +1,4 @@
-# gawk-cjp2p
+# gawk-udp
 
 A GAWK extension that adds unconnected UDP socket primitives. 
 
