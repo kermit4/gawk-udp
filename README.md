@@ -1,9 +1,6 @@
 # gawk-cjp2p
 
-A GAWK extension that adds unconnected UDP socket primitives, plus a
-`presence.awk` demo that joins the [cjp2p](https://cjp2p.org) peer
-network and implements the same presence protocol as `presence.py` and
-`presence.hs`.
+A GAWK extension that adds unconnected UDP socket primitives. 
 
 ## Files
 
@@ -11,7 +8,6 @@ network and implements the same presence protocol as `presence.py` and
 |------|-------------|
 | `udp.c` | GAWK extension -- four UDP functions |
 | `Makefile` | Builds `udp.so` |
-| `presence.awk` | Presence demo (parallel to `presence.py` / `presence.hs`) |
 
 ## Building
 
@@ -97,67 +93,3 @@ BEGIN {
 }
 ```
 
-## Running presence.awk
-
-```sh
-# Build the extension first.
-make
-
-# Run (NAME defaults to "anon", or pass as first argument or env var).
-AWKLIBPATH=. gawk -f presence.awk alice
-
-# Or, if gawk-json is installed system-wide but udp.so is local:
-AWKLIBPATH=.:/usr/lib/gawk gawk -f presence.awk alice
-```
-
-Every 5 seconds it sends `IAmHere` to all known peers.
-Every 10 seconds it prints who it has seen recently:
-
-```
-Listening on UDP 24254 as alice
-
---- Who is here (alice) ---
-  alice                148.71.89.128:24254    3s ago
-  bob                  203.0.113.42:24254     7s ago
-```
-
-## Protocol
-
-The demo uses the same wire protocol as `presence.py` and `presence.hs`.
-All messages are JSON arrays sent as single UDP datagrams on port 24254.
-
-Custom message types (ignored by the cjp2p Rust node):
-
-```
-IAmHere        {"name": "alice", "t": 1718000000}
-WhoIsHere      {}
-HereIsWho      {"nodes": [{"name":"...", "t":..., "addr":"..."}]}
-```
-
-Standard cjp2p message types also used:
-
-```
-PleaseSendPeers              {}
-Peers                        {"peers": ["ip:port", ...]}
-PleaseAlwaysReturnThisMessage  "cookie"
-AlwaysReturned               "cookie"
-```
-
-Anti-amplification: if a peer has not yet echoed our cookie, and the
-response would exceed 2.5x the request size, the response is trimmed to
-just our cookie request plus at most one peer address.
-
-## Differences from presence.py / presence.hs
-
-- **Cookies**: per-peer random hex strings stored in an awk array,
-  rather than HMAC-SHA256 derived from a session secret.  Functionally
-  equivalent; the HMAC approach trades per-peer state for statelessness
-  at large scale.
-- **No threads**: a single event loop with a 1-second `recvfrom` timeout
-  drives both I/O and the ping / print timers.
-- **JSON construction**: outgoing messages are assembled as literal
-  strings; only incoming messages use the json library for parsing.
-
-## License
-
-MIT
